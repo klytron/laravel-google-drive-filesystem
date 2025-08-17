@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Rebranded from scryba to klytron
+- Updated all references, namespaces, and documentation
+- Updated repository URLs and author information
+
 ## [1.1.3] - 2025-01-27
 
 ### Fixed

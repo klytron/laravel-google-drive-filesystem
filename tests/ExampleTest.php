@@ -1,9 +1,9 @@
 <?php
 
-namespace Scryba\GoogleDriveFilesystem\Tests;
+namespace Klytron\GoogleDriveFilesystem\Tests;
 
 use Orchestra\Testbench\TestCase;
-use Scryba\GoogleDriveFilesystem\Providers\GoogleDriveServiceProvider;
+use Klytron\GoogleDriveFilesystem\Providers\GoogleDriveServiceProvider;
 
 class ExampleTest extends TestCase
 {

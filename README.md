@@ -1,9 +1,9 @@
-# scryba/laravel-google-drive-filesystem
+# klytron/laravel-google-drive-filesystem
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/scryba/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/scryba/laravel-google-drive-filesystem)
-[![Total Downloads](https://img.shields.io/packagist/dt/scryba/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/scryba/laravel-google-drive-filesystem)
-[![License](https://img.shields.io/packagist/l/scryba/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/scryba/laravel-google-drive-filesystem)
-[![PHP Version](https://img.shields.io/packagist/php-v/scryba/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/scryba/laravel-google-drive-filesystem)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
+[![Total Downloads](https://img.shields.io/packagist/dt/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
+[![License](https://img.shields.io/packagist/l/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
+[![PHP Version](https://img.shields.io/packagist/php-v/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
 [![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-orange.svg?style=flat-square)](https://laravel.com/)
 
 A robust Google Drive filesystem adapter for Laravel that provides seamless integration with Google Drive as a storage disk. Features configurable debug logging, automatic folder creation, and full Laravel Filesystem API compatibility.
@@ -29,7 +29,7 @@ A robust Google Drive filesystem adapter for Laravel that provides seamless inte
 Install via Composer:
 
 ```bash
-composer require scryba/laravel-google-drive-filesystem
+composer require klytron/laravel-google-drive-filesystem
 ```
 
 For advanced installation and VCS/development setup, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
@@ -126,15 +126,15 @@ For advanced usage and more examples, see [docs/USAGE.md](docs/USAGE.md).
 
 ## 📝 License
 
-This package is open-sourced software licensed under the [MIT license](LICENSE).
+The MIT License (MIT). Please see [License File](LICENSE) for more information.
 
-## 🤝 Support
+## 🔗 Links
 
-- **Author**: Michael K. Laweh (<contact@michael.laweitech.com>)
-- **Homepage**: <https://michael.laweitech.com/>
-- **Repository**: <https://github.com/scryba/laravel-google-drive-filesystem>
-- **Issues**: [GitHub Issues](https://github.com/scryba/laravel-google-drive-filesystem/issues)
-- **Funding**: [Buy me a coffee](https://michael.laweitech.com/buy-me-a-coffee)
+- **Author**: [Michael K. Laweh](https://www.klytron.com)
+- **GitHub**: [klytron](https://github.com/klytron)
+- **Packagist**: [klytron/laravel-google-drive-filesystem](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
+- **Issues**: [GitHub Issues](https://github.com/klytron/laravel-google-drive-filesystem/issues)
+- **Funding**: [Buy me a coffee](https://www.klytron.com/buy-me-a-coffee)
 
 ## 📚 Documentation
 

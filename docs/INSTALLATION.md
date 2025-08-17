@@ -5,7 +5,7 @@
 Install via Composer:
 
 ```
-composer require scryba/laravel-google-drive-filesystem
+composer require klytron/laravel-google-drive-filesystem
 ```
 
 ## Via VCS (Development)
@@ -18,11 +18,11 @@ If you want to use the latest development version directly from GitHub:
 "repositories": [
     {
         "type": "vcs",
-        "url": "https://github.com/scryba/laravel-google-drive-filesystem"
+        "url": "https://github.com/klytron/laravel-google-drive-filesystem"
     }
 ],
 "require": {
-    "scryba/laravel-google-drive-filesystem": "@dev"
+    "klytron/laravel-google-drive-filesystem": "@dev"
 }
 ```
 
@@ -36,4 +36,4 @@ composer update
 
 - Make sure your PHP and Laravel versions meet the requirements.
 - If you have issues with package discovery, run `composer dump-autoload`.
-- For more help, open an issue on [GitHub](https://github.com/scryba/laravel-google-drive-filesystem/issues).
+- For more help, open an issue on [GitHub](https://github.com/klytron/laravel-google-drive-filesystem/issues).

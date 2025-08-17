@@ -1,6 +1,6 @@
 <?php
 
-namespace Scryba\GoogleDriveFilesystem\Adapters;
+namespace Klytron\GoogleDriveFilesystem\Adapters;
 
 use Google\Client;
 use Google\Service\Drive;

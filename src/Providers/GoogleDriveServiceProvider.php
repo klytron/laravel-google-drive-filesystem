@@ -1,12 +1,12 @@
 <?php
 
-namespace Scryba\GoogleDriveFilesystem\Providers;
+namespace Klytron\GoogleDriveFilesystem\Providers;
 
 use Google\Client;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
-use Scryba\GoogleDriveFilesystem\Adapters\GoogleDriveAdapter;
+use Klytron\GoogleDriveFilesystem\Adapters\GoogleDriveAdapter;
 use League\Flysystem\Filesystem;
 
 class GoogleDriveServiceProvider extends ServiceProvider

@@ -1,5 +1,5 @@
 {
-    "name": "scryba/laravel-google-drive-filesystem",
+    "name": "klytron/laravel-google-drive-filesystem",
     "description": "Google Drive filesystem adapter for Laravel (10, 11, 12)",
     "type": "library",
     "license": "MIT",
@@ -12,15 +12,15 @@
     "authors": [
         {
             "name": "Michael K. Laweh",
-            "email": "contact@michael.laweitech.com",
-            "homepage": "https://michael.laweitech.com/",
+            "email": "hi@klytron.com",
+            "homepage": "https://www.klytron.com",
             "role": "Developer"
         }
     ],
     "funding": [
         {
             "type": "custom",
-            "url": "https://michael.laweitech.com/buy-me-a-coffee"
+            "url": "https://www.klytron.com/buy-me-a-coffee"
         }
     ],
     "require": {
@@ -36,27 +36,27 @@
     },
     "autoload": {
         "psr-4": {
-            "Scryba\\GoogleDriveFilesystem\\": "src/"
+            "Klytron\\GoogleDriveFilesystem\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Scryba\\GoogleDriveFilesystem\\Tests\\": "tests/"
+            "Klytron\\GoogleDriveFilesystem\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Scryba\\GoogleDriveFilesystem\\Providers\\GoogleDriveServiceProvider"
+                "Klytron\\GoogleDriveFilesystem\\Providers\\GoogleDriveServiceProvider"
             ]
         }
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "homepage": "https://michael.laweitech.com/projects/laravel-google-drive-filesystem",
+    "homepage": "https://www.klytron.com/projects/laravel-google-drive-filesystem",
     "readme": "README.md",
     "support": {
-        "source": "https://github.com/scryba/laravel-google-drive-filesystem",
-        "issues": "https://github.com/scryba/laravel-google-drive-filesystem/issues"
+        "source": "https://github.com/klytron/laravel-google-drive-filesystem",
+        "issues": "https://github.com/klytron/laravel-google-drive-filesystem/issues"
     }
 }
