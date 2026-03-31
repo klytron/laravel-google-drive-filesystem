@@ -90,7 +90,27 @@ class GoogleDriveAdapter implements FilesystemAdapter
 
     public function writeStream(string $path, $contents, Config $config): void
     {
-        $this->write($path, stream_get_contents($contents), $config);
+        try {
+            $pathInfo = pathinfo($path);
+            $parentId = $this->getOrCreateParentFolder($pathInfo['dirname'] ?? '');
+            
+            $file = new DriveFile();
+            $file->setName($pathInfo['basename']);
+            $file->setParents([$parentId]);
+
+            // Use resumable upload for better memory efficiency with streams
+            $chunkSize = 256 * 1024; // 256KB chunks
+            
+            $this->service->files->create($file, [
+                'data' => $contents,
+                'mimeType' => $this->getMimeType($path),
+                'uploadType' => 'resumable',
+                'fields' => 'id'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('[GoogleDriveAdapter] writeStream error', ['path' => $path, 'error' => $e->getMessage()]);
+            throw UnableToWriteFile::atLocation($path, $e->getMessage(), $e);
+        }
     }
 
     public function read(string $path): string
@@ -334,7 +354,8 @@ class GoogleDriveAdapter implements FilesystemAdapter
             return null;
         }
 
-        $query = "name='{$fileName}' and '{$parentId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'";
+        $escapedFileName = $this->escapeQueryString($fileName);
+        $query = "name='{$escapedFileName}' and '{$parentId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'";
         $files = $this->service->files->listFiles([
             'q' => $query,
             'fields' => 'files(id,name,size,modifiedTime,mimeType,parents)'
@@ -357,7 +378,8 @@ class GoogleDriveAdapter implements FilesystemAdapter
         $currentId = $this->rootFolderId;
 
         foreach ($pathParts as $folderName) {
-            $query = "name='{$folderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
+            $escapedFolderName = $this->escapeQueryString($folderName);
+            $query = "name='{$escapedFolderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
             $folders = $this->service->files->listFiles(['q' => $query])->getFiles();
             
             if (empty($folders)) {
@@ -386,7 +408,8 @@ class GoogleDriveAdapter implements FilesystemAdapter
         $currentId = $this->rootFolderId ?? 'root';
 
         foreach ($pathParts as $folderName) {
-            $query = "name='{$folderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
+            $escapedFolderName = $this->escapeQueryString($folderName);
+            $query = "name='{$escapedFolderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
             $folders = $this->service->files->listFiles(['q' => $query])->getFiles();
             
             if (empty($folders)) {
@@ -425,6 +448,21 @@ class GoogleDriveAdapter implements FilesystemAdapter
         ];
 
         return $mimeTypes[$extension] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Escape special characters in query strings for Google Drive API.
+     * Google Drive API queries use single quotes as string delimiters.
+     * Single quotes within the string must be escaped by replacing with \'.
+     *
+     * @param string $str The string to escape
+     * @return string The escaped string safe for use in queries
+     */
+    private function escapeQueryString(string $str): string
+    {
+        // Escape single quotes by replacing ' with \'
+        // Also escape backslash to prevent injection
+        return str_replace(['\\', "'"], ['\\\\', "\\'"], $str);
     }
 
     /**

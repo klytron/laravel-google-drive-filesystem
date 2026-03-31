@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
 [![License](https://img.shields.io/packagist/l/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
 [![PHP Version](https://img.shields.io/packagist/php-v/klytron/laravel-google-drive-filesystem.svg?style=flat-square)](https://packagist.org/packages/klytron/laravel-google-drive-filesystem)
-[![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x-orange.svg?style=flat-square)](https://laravel.com/)
+[![Laravel Version](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x%20%7C%2012.x%20%7C%2013.x-orange.svg?style=flat-square)](https://laravel.com/)
 
 A robust Google Drive filesystem adapter for Laravel that provides seamless integration with Google Drive as a storage disk. Features configurable debug logging, automatic folder creation, and full Laravel Filesystem API compatibility.
 
@@ -119,7 +119,7 @@ For advanced usage and more examples, see [docs/USAGE.md](docs/USAGE.md).
 
 ## 🔧 Laravel Compatibility
 
-- **Laravel**: 10.x, 11.x, 12.x
+- **Laravel**: 10.x, 11.x, 12.x, 13.x
 - **PHP**: 8.1 or higher
 - **Google API Client**: ^2.15
 - **Flysystem**: ^3.0
