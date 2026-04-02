@@ -1,7 +1,6 @@
 {
     "name": "klytron/laravel-google-drive-filesystem",
     "description": "Google Drive filesystem adapter for Laravel (10, 11, 12, 13)",
-    "version": "1.1.0",
     "type": "library",
     "license": "MIT",
     "keywords": [
