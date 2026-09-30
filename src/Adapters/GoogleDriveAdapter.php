@@ -27,12 +27,24 @@ class GoogleDriveAdapter implements FilesystemAdapter
     private Drive $service;
     private PathPrefixer $prefixer;
     private ?string $rootFolderId;
+    private array $defaultParameters;
 
-    public function __construct(Client $client, ?string $rootFolderId = null)
+    public function __construct(Client $client, ?string $rootFolderId = null, array $options = [])
     {
         $this->service = new Drive($client);
         $this->prefixer = new PathPrefixer('');
         $this->rootFolderId = $rootFolderId;
+
+        $teamDrive = $options['team_drive'] ?? config('google-drive.team_drive', false);
+        $this->defaultParameters = $teamDrive ? [
+            'supportsAllDrives' => true,
+            'includeItemsFromAllDrives' => true,
+        ] : [];
+    }
+
+    private function applyDriveOptions(array $parameters = []): array
+    {
+        return array_merge($this->defaultParameters, $parameters);
     }
 
     public function fileExists(string $path): bool
@@ -58,26 +70,39 @@ class GoogleDriveAdapter implements FilesystemAdapter
     public function write(string $path, string $contents, Config $config): void
     {
         try {
-            $pathInfo = pathinfo($path);
-            $parentId = $this->getOrCreateParentFolder($pathInfo['dirname'] ?? '');
-            
-            $file = new DriveFile();
-            $file->setName($pathInfo['basename']);
-            $file->setParents([$parentId]);
+            $existingFile = $this->getFileByPath($path);
 
-            $createdFile = $this->service->files->create($file, [
-                'data' => $contents,
-                'mimeType' => $this->getMimeType($path),
-                'uploadType' => 'multipart',
-                'fields' => 'id'
-            ]);
+            if ($existingFile) {
+                // Update existing file content instead of creating duplicate
+                $fileMetadata = new DriveFile();
+                $fileMeta = $this->service->files->update($existingFile->getId(), $fileMetadata, $this->applyDriveOptions([
+                    'data' => $contents,
+                    'mimeType' => $this->getMimeType($path),
+                    'uploadType' => 'multipart',
+                    'fields' => 'id,size,modifiedTime'
+                ]));
+                $fileId = $existingFile->getId();
+            } else {
+                $pathInfo = pathinfo($path);
+                $parentId = $this->getOrCreateParentFolder($pathInfo['dirname'] ?? '');
+                
+                $file = new DriveFile();
+                $file->setName($pathInfo['basename']);
+                $file->setParents([$parentId]);
 
-            // Fetch the file metadata once after upload
-            $fileMeta = $this->service->files->get($createdFile->getId(), ['fields' => 'id,size,modifiedTime']);
+                $createdFile = $this->service->files->create($file, $this->applyDriveOptions([
+                    'data' => $contents,
+                    'mimeType' => $this->getMimeType($path),
+                    'uploadType' => 'multipart',
+                    'fields' => 'id'
+                ]));
+                $fileId = $createdFile->getId();
+                $fileMeta = $this->service->files->get($fileId, $this->applyDriveOptions(['fields' => 'id,size,modifiedTime']));
+            }
             
             if (config('google-drive.log_payload', config('app.debug', false))) {
                 \Log::debug('[GoogleDriveAdapter] write: Fetched file metadata after upload', [
-                    'id' => $createdFile->getId(),
+                    'id' => $fileId,
                     'size' => $fileMeta->getSize(),
                     'modifiedTime' => $fileMeta->getModifiedTime(),
                 ]);
@@ -91,22 +116,31 @@ class GoogleDriveAdapter implements FilesystemAdapter
     public function writeStream(string $path, $contents, Config $config): void
     {
         try {
-            $pathInfo = pathinfo($path);
-            $parentId = $this->getOrCreateParentFolder($pathInfo['dirname'] ?? '');
-            
-            $file = new DriveFile();
-            $file->setName($pathInfo['basename']);
-            $file->setParents([$parentId]);
+            $existingFile = $this->getFileByPath($path);
 
-            // Use resumable upload for better memory efficiency with streams
-            $chunkSize = 256 * 1024; // 256KB chunks
-            
-            $this->service->files->create($file, [
-                'data' => $contents,
-                'mimeType' => $this->getMimeType($path),
-                'uploadType' => 'resumable',
-                'fields' => 'id'
-            ]);
+            if ($existingFile) {
+                $fileMetadata = new DriveFile();
+                $this->service->files->update($existingFile->getId(), $fileMetadata, $this->applyDriveOptions([
+                    'data' => $contents,
+                    'mimeType' => $this->getMimeType($path),
+                    'uploadType' => 'resumable',
+                    'fields' => 'id'
+                ]));
+            } else {
+                $pathInfo = pathinfo($path);
+                $parentId = $this->getOrCreateParentFolder($pathInfo['dirname'] ?? '');
+                
+                $file = new DriveFile();
+                $file->setName($pathInfo['basename']);
+                $file->setParents([$parentId]);
+
+                $this->service->files->create($file, $this->applyDriveOptions([
+                    'data' => $contents,
+                    'mimeType' => $this->getMimeType($path),
+                    'uploadType' => 'resumable',
+                    'fields' => 'id'
+                ]));
+            }
         } catch (\Exception $e) {
             \Log::error('[GoogleDriveAdapter] writeStream error', ['path' => $path, 'error' => $e->getMessage()]);
             throw UnableToWriteFile::atLocation($path, $e->getMessage(), $e);
@@ -121,7 +155,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
                 throw new \Exception("File not found: {$path}");
             }
 
-            $response = $this->service->files->get($file->getId(), ['alt' => 'media']);
+            $response = $this->service->files->get($file->getId(), $this->applyDriveOptions(['alt' => 'media']));
             return $response->getBody()->getContents();
         } catch (\Exception $e) {
             throw UnableToReadFile::fromLocation($path, $e->getMessage(), $e);
@@ -130,11 +164,30 @@ class GoogleDriveAdapter implements FilesystemAdapter
 
     public function readStream(string $path)
     {
-        $contents = $this->read($path);
-        $stream = fopen('php://temp', 'r+');
-        fwrite($stream, $contents);
-        rewind($stream);
-        return $stream;
+        try {
+            $file = $this->getFileByPath($path);
+            if (!$file) {
+                throw new \Exception("File not found: {$path}");
+            }
+
+            $response = $this->service->files->get($file->getId(), $this->applyDriveOptions(['alt' => 'media']));
+            $body = $response->getBody();
+
+            $resource = $body->detach();
+            if (is_resource($resource)) {
+                return $resource;
+            }
+
+            // Fallback chunked streaming into temp stream
+            $stream = fopen('php://temp', 'r+');
+            while (!$body->eof()) {
+                fwrite($stream, $body->read(1048576));
+            }
+            rewind($stream);
+            return $stream;
+        } catch (\Exception $e) {
+            throw UnableToReadFile::fromLocation($path, $e->getMessage(), $e);
+        }
     }
 
     public function delete(string $path): void
@@ -145,7 +198,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
                 throw new \Exception("File not found: {$path}");
             }
 
-            $this->service->files->delete($file->getId());
+            $this->service->files->delete($file->getId(), $this->defaultParameters);
         } catch (\Exception $e) {
             throw UnableToDeleteFile::atLocation($path, $e->getMessage(), $e);
         }
@@ -159,7 +212,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
                 throw new \Exception("Directory not found: {$path}");
             }
 
-            $this->service->files->delete($folder->getId());
+            $this->service->files->delete($folder->getId(), $this->defaultParameters);
         } catch (\Exception $e) {
             throw UnableToDeleteDirectory::atLocation($path, $e->getMessage(), $e);
         }
@@ -267,30 +320,48 @@ class GoogleDriveAdapter implements FilesystemAdapter
             }
 
             $query = "'{$folderId}' in parents and trashed=false";
-            $files = $this->service->files->listFiles([
-                'q' => $query,
-                'fields' => 'files(id,name,size,modifiedTime,mimeType,parents)'
-            ])->getFiles();
+            $pageToken = null;
 
-            foreach ($files as $file) {
-                $filePath = $path === '' ? $file->getName() : $path . '/' . $file->getName();
-                
-                if ($file->getMimeType() === 'application/vnd.google-apps.folder') {
-                    yield new DirectoryAttributes($filePath);
-                    
-                    if ($deep) {
-                        yield from $this->listContents($filePath, true);
-                    }
-                } else {
-                    yield new FileAttributes(
-                        $filePath,
-                        (int) $file->getSize(),
-                        null,
-                        strtotime($file->getModifiedTime()),
-                        $file->getMimeType()
-                    );
+            do {
+                $parameters = $this->applyDriveOptions([
+                    'q' => $query,
+                    'pageSize' => 1000,
+                    'fields' => 'nextPageToken,files(id,name,size,modifiedTime,mimeType,parents)'
+                ]);
+
+                if ($pageToken !== null) {
+                    $parameters['pageToken'] = $pageToken;
                 }
-            }
+
+                $fileList = $this->service->files->listFiles($parameters);
+                $files = $fileList->getFiles() ?? [];
+
+                foreach ($files as $file) {
+                    $filePath = $path === '' ? $file->getName() : $path . '/' . $file->getName();
+                    
+                    if ($file->getMimeType() === 'application/vnd.google-apps.folder') {
+                        yield new DirectoryAttributes($filePath);
+                        
+                        if ($deep) {
+                            yield from $this->listContents($filePath, true);
+                        }
+                    } else {
+                        $modifiedTime = $file->getModifiedTime();
+                        $timestamp = $modifiedTime ? (strtotime($modifiedTime) ?: null) : null;
+
+                        yield new FileAttributes(
+                            $filePath,
+                            $file->getSize() !== null ? (int) $file->getSize() : null,
+                            null,
+                            $timestamp,
+                            $file->getMimeType()
+                        );
+                    }
+                }
+
+                $pageToken = $fileList->getNextPageToken();
+            } while ($pageToken !== null);
+
         } catch (\Exception $e) {
             throw UnableToListContents::atLocation($path, $deep, $e);
         }
@@ -310,10 +381,16 @@ class GoogleDriveAdapter implements FilesystemAdapter
             $updatedFile = new DriveFile();
             $updatedFile->setName($destinationInfo['basename']);
             
-            $this->service->files->update($file->getId(), $updatedFile, [
+            $params = [
                 'addParents' => $newParentId,
-                'removeParents' => implode(',', $file->getParents())
-            ]);
+            ];
+
+            $parents = $file->getParents();
+            if (!empty($parents)) {
+                $params['removeParents'] = implode(',', $parents);
+            }
+            
+            $this->service->files->update($file->getId(), $updatedFile, $this->applyDriveOptions($params));
         } catch (\Exception $e) {
             throw UnableToMoveFile::fromLocationTo($source, $destination, $e);
         }
@@ -334,7 +411,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
             $copiedFile->setName($destinationInfo['basename']);
             $copiedFile->setParents([$parentId]);
 
-            $this->service->files->copy($sourceFile->getId(), $copiedFile);
+            $this->service->files->copy($sourceFile->getId(), $copiedFile, $this->defaultParameters);
         } catch (\Exception $e) {
             throw UnableToWriteFile::atLocation($destination, $e->getMessage(), $e);
         }
@@ -356,10 +433,10 @@ class GoogleDriveAdapter implements FilesystemAdapter
 
         $escapedFileName = $this->escapeQueryString($fileName);
         $query = "name='{$escapedFileName}' and '{$parentId}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'";
-        $files = $this->service->files->listFiles([
+        $files = $this->service->files->listFiles($this->applyDriveOptions([
             'q' => $query,
             'fields' => 'files(id,name,size,modifiedTime,mimeType,parents)'
-        ])->getFiles();
+        ]))->getFiles();
         $file = $files[0] ?? null;
         
         if (config('google-drive.log_payload', config('app.debug', false))) {
@@ -371,7 +448,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
     private function getFolderByPath(string $path): ?DriveFile
     {
         if ($path === '' || $path === '.') {
-            return $this->rootFolderId ? $this->service->files->get($this->rootFolderId) : null;
+            return $this->rootFolderId ? $this->service->files->get($this->rootFolderId, $this->defaultParameters) : null;
         }
 
         $pathParts = explode('/', trim($path, '/'));
@@ -380,7 +457,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
         foreach ($pathParts as $folderName) {
             $escapedFolderName = $this->escapeQueryString($folderName);
             $query = "name='{$escapedFolderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
-            $folders = $this->service->files->listFiles(['q' => $query])->getFiles();
+            $folders = $this->service->files->listFiles($this->applyDriveOptions(['q' => $query]))->getFiles();
             
             if (empty($folders)) {
                 return null;
@@ -389,7 +466,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
             $currentId = $folders[0]->getId();
         }
 
-        return $this->service->files->get($currentId);
+        return $this->service->files->get($currentId, $this->defaultParameters);
     }
 
     private function getOrCreateParentFolder(string $path): string
@@ -410,7 +487,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
         foreach ($pathParts as $folderName) {
             $escapedFolderName = $this->escapeQueryString($folderName);
             $query = "name='{$escapedFolderName}' and '{$currentId}' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'";
-            $folders = $this->service->files->listFiles(['q' => $query])->getFiles();
+            $folders = $this->service->files->listFiles($this->applyDriveOptions(['q' => $query]))->getFiles();
             
             if (empty($folders)) {
                 $folder = new DriveFile();
@@ -418,7 +495,7 @@ class GoogleDriveAdapter implements FilesystemAdapter
                 $folder->setMimeType('application/vnd.google-apps.folder');
                 $folder->setParents([$currentId]);
                 
-                $createdFolder = $this->service->files->create($folder);
+                $createdFolder = $this->service->files->create($folder, $this->defaultParameters);
                 $currentId = $createdFolder->getId();
             } else {
                 $currentId = $folders[0]->getId();
@@ -437,14 +514,22 @@ class GoogleDriveAdapter implements FilesystemAdapter
             'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
             'pdf' => 'application/pdf',
             'txt' => 'text/plain',
+            'csv' => 'text/csv',
             'html' => 'text/html',
             'css' => 'text/css',
             'js' => 'application/javascript',
             'json' => 'application/json',
             'xml' => 'application/xml',
             'zip' => 'application/zip',
+            'tar' => 'application/x-tar',
+            'gz' => 'application/gzip',
+            'sql' => 'application/sql',
+            'mp4' => 'video/mp4',
+            'mp3' => 'audio/mpeg',
         ];
 
         return $mimeTypes[$extension] ?? 'application/octet-stream';
@@ -472,9 +557,9 @@ class GoogleDriveAdapter implements FilesystemAdapter
     private function getFileMetadata(string $fileId): ?DriveFile
     {
         try {
-            return $this->service->files->get($fileId, [
+            return $this->service->files->get($fileId, $this->applyDriveOptions([
                 'fields' => 'id,name,size,modifiedTime,mimeType,parents'
-            ]);
+            ]));
         } catch (\Exception $e) {
             if (config('google-drive.debug', config('app.debug', false))) {
                 \Log::error('[GoogleDriveAdapter] getFileMetadata error', [

@@ -11,17 +11,21 @@ A robust Google Drive filesystem adapter for Laravel that provides seamless inte
 ## ✨ Features
 
 - 🚀 **Full Laravel Filesystem API Support** - Use Google Drive like any other Laravel disk
+- 👥 **Shared Drive (Team Drive) Support** - Full support for Team Drives and shared corporate storage
+- 🔄 **In-Place File Updates** - Safely overwrites existing files instead of creating duplicate Drive IDs
+- 📑 **Complete Pagination** - Cursor-based pagination (`nextPageToken`) for directories with >1,000 items
+- 🌊 **Memory-Safe Streaming** - 1MB chunked reading for downloading large files without memory exhaustion
 - 🔧 **Configurable Debug Logging** - Control debug output in production environments
 - 📁 **Automatic Folder Creation** - Folders are created automatically when needed
-- 🔐 **Secure Authentication** - Support for both access tokens and refresh tokens
-- 📊 **Metadata Support** - File sizes, modification times, and MIME types
+- 🔐 **Secure Authentication** - Support for both access tokens and refresh tokens with error detection
+- 📊 **Metadata Support** - File sizes, modification times, and comprehensive MIME types
 - 🛡️ **Production Ready** - Proper error handling and logging configuration
 - 📚 **Comprehensive Documentation** - Detailed setup and usage guides
 
 ## 📋 Requirements
 
-- PHP 8.1 or higher
-- Laravel 10.x, 11.x, or 12.x
+- PHP 8.1, 8.2, 8.3, or 8.4
+- Laravel 10.x, 11.x, 12.x, or 13.x
 - Google Cloud Platform project with Drive API enabled
 
 ## 🚀 Quick Installation
@@ -54,10 +58,23 @@ GOOGLE_DRIVE_ACCESS_TOKEN=your-access-token
 GOOGLE_DRIVE_REFRESH_TOKEN=your-refresh-token
 GOOGLE_DRIVE_FOLDER_ID=your-folder-id
 
+# Shared Drive / Team Drive Support (optional)
+GOOGLE_DRIVE_TEAM_DRIVE=false
+
 # Debug Logging (optional)
 GOOGLE_DRIVE_DEBUG=false
 GOOGLE_DRIVE_LOG_PAYLOAD=false
 ```
+
+#### Shared Drives (Team Drives)
+
+If you are using Google Workspace Shared Drives (formerly Team Drives), set:
+
+```env
+GOOGLE_DRIVE_TEAM_DRIVE=true
+```
+
+When enabled, all Drive operations automatically pass `supportsAllDrives=true` and `includeItemsFromAllDrives=true`.
 
 #### Debug Logging Options
 

@@ -49,4 +49,15 @@ return [
     |
     */
     'log_payload' => env('GOOGLE_DRIVE_LOG_PAYLOAD', env('APP_DEBUG', false)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shared Drives (Team Drives) Support
+    |--------------------------------------------------------------------------
+    |
+    | When true, sets supportsAllDrives and includeItemsFromAllDrives flags
+    | to allow operations on files and folders within Shared Drives.
+    |
+    */
+    'team_drive' => env('GOOGLE_DRIVE_TEAM_DRIVE', false),
 ];

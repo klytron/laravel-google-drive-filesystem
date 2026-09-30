@@ -47,6 +47,10 @@ class GoogleDriveServiceProvider extends ServiceProvider
                 try {
                     // Fetch and set the access token using the refresh token
                     $accessToken = $client->fetchAccessTokenWithRefreshToken($config['refresh_token']);
+                    if (is_array($accessToken) && isset($accessToken['error'])) {
+                        $errorDesc = $accessToken['error_description'] ?? $accessToken['error'];
+                        throw new \RuntimeException("Google Drive token refresh failed: {$errorDesc}. Please re-authenticate and update GOOGLE_DRIVE_REFRESH_TOKEN.");
+                    }
                     $client->setAccessToken($accessToken);
                 } catch (\Exception $e) {
                     if (config('google-drive.debug', config('app.debug', false))) {
@@ -66,7 +70,7 @@ class GoogleDriveServiceProvider extends ServiceProvider
             // Get folder ID from config or env
             $folderId = $config['folder_id'] ?? env('GOOGLE_DRIVE_FOLDER_ID');
 
-            $adapter = new GoogleDriveAdapter($client, $folderId);
+            $adapter = new GoogleDriveAdapter($client, $folderId, $config);
             $filesystem = new Filesystem($adapter);
 
             return new FilesystemAdapter($filesystem, $adapter, $config);
