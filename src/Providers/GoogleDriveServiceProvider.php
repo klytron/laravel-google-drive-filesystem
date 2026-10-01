@@ -2,11 +2,12 @@
 
 namespace Klytron\GoogleDriveFilesystem\Providers;
 
-use Google\Client;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\ServiceProvider;
 use Klytron\GoogleDriveFilesystem\Adapters\GoogleDriveAdapter;
+use Klytron\GoogleDriveFilesystem\Console\CheckGoogleDriveCommand;
+use Klytron\GoogleDriveFilesystem\GoogleDriveAuth;
 use League\Flysystem\Filesystem;
 
 class GoogleDriveServiceProvider extends ServiceProvider
@@ -22,35 +23,28 @@ class GoogleDriveServiceProvider extends ServiceProvider
             __DIR__ . '/../../config/google-drive.php' => config_path('google-drive.php'),
         ], 'google-drive-config');
 
+        if ($this->app->runningInConsole()) {
+            $this->commands([CheckGoogleDriveCommand::class]);
+        }
+
         Storage::extend('google', function ($app, $config) {
             // Validate required configuration
             if (empty($config['client_id'])) {
                 throw new \InvalidArgumentException('Google Drive client_id is required');
             }
-            
+
             if (empty($config['client_secret'])) {
                 throw new \InvalidArgumentException('Google Drive client_secret is required');
             }
 
-            $client = new Client();
-            
-            // Set up Google API client
-            $client->setClientId($config['client_id']);
-            $client->setClientSecret($config['client_secret']);
-            $client->setRedirectUri($config['redirect_uri'] ?? 'http://localhost');
-            $client->setAccessType('offline');
-            $client->setApprovalPrompt('force');
-            $client->setScopes(['https://www.googleapis.com/auth/drive']);
+            $client = GoogleDriveAuth::buildClient($config);
 
             // Handle authentication tokens
             if (!empty($config['refresh_token'])) {
                 try {
                     // Fetch and set the access token using the refresh token
-                    $accessToken = $client->fetchAccessTokenWithRefreshToken($config['refresh_token']);
-                    if (is_array($accessToken) && isset($accessToken['error'])) {
-                        $errorDesc = $accessToken['error_description'] ?? $accessToken['error'];
-                        throw new \RuntimeException("Google Drive token refresh failed: {$errorDesc}. Please re-authenticate and update GOOGLE_DRIVE_REFRESH_TOKEN.");
-                    }
+                    // (one transparent retry on transient 401/5xx failures)
+                    $accessToken = GoogleDriveAuth::refreshAccessTokenWithRetry($client, $config['refresh_token']);
                     $client->setAccessToken($accessToken);
                 } catch (\Exception $e) {
                     if (config('google-drive.debug', config('app.debug', false))) {

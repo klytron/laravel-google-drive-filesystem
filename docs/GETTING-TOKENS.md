@@ -35,6 +35,11 @@ This guide will help you set up Google Drive API credentials and obtain the requ
    ```
 
    and click **Authorize APIs**.
+
+   > Use the same scope you configured in `GOOGLE_DRIVE_SCOPES` (see the
+   > scopes table in the README): the refresh token only carries the scopes
+   > selected here, so a token minted with `.../auth/drive.readonly` cannot
+   > upload files even if the config asks for full access.
 4. Sign in with your Google account and allow access.
 5. In **Step 2**, click **Exchange authorization code for tokens**.
 6. You will see your **Access token** and **Refresh token**. Copy these values for your `.env` file.

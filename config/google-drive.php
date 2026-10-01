@@ -3,6 +3,19 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Filesystem Driver
+    |--------------------------------------------------------------------------
+    |
+    | Identifies this configuration as the "google" filesystem driver. The
+    | service provider merges this file into `filesystems.disks.google`,
+    | and Laravel requires every disk to declare its driver at boot.
+    |
+    */
+
+    'driver' => 'google',
+
+    /*
+    |--------------------------------------------------------------------------
     | Google Drive API Configuration
     |--------------------------------------------------------------------------
     |
@@ -49,6 +62,27 @@ return [
     |
     */
     'log_payload' => env('GOOGLE_DRIVE_LOG_PAYLOAD', env('APP_DEBUG', false)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | OAuth Scopes
+    |--------------------------------------------------------------------------
+    |
+    | The OAuth scopes granted to the credentials above. Defaults to full
+    | read/write access. For least privilege, restrict this to one of:
+    |
+    | - https://www.googleapis.com/auth/drive          (full read/write)
+    | - https://www.googleapis.com/auth/drive.readonly (read-only)
+    | - https://www.googleapis.com/auth/drive.appdata  (app data folder only)
+    |
+    | May be a single scope, a comma-separated list
+    | (GOOGLE_DRIVE_SCOPES="scope-a,scope-b"), or an array when set
+    | programmatically. IMPORTANT: the refresh token must have been
+    | generated with (at least) these scopes, otherwise API calls fail
+    | with permission errors — re-run the OAuth flow after narrowing.
+    |
+    */
+    'scopes' => env('GOOGLE_DRIVE_SCOPES', ['https://www.googleapis.com/auth/drive']),
 
     /*
     |--------------------------------------------------------------------------

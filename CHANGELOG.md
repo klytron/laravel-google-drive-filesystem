@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.5.0] - 2026-10-01
+
+### Added
+- **Transparent Token Refresh Retry**: `fetchAccessTokenWithRefreshToken` failures classified as transient (401/429/5xx, timeouts, network errors) are retried once with exponential backoff before surfacing the actionable `GOOGLE_DRIVE_REFRESH_TOKEN` error.
+- **`GoogleDriveAuth::assertCredentials()` Helper**: Validates `client_id`/`client_secret` plus refresh/access tokens without any Drive side effects, for use in scheduled jobs and health checks.
+- **`google-drive:check` Artisan Command**: `php artisan google-drive:check [--disk=...]` validates disk credentials read-only (exit 0 = valid).
+- **Configurable OAuth Scopes**: New `scopes` setting (`GOOGLE_DRIVE_SCOPES`, comma-separated or array) defaulting to full `auth/drive` for BC; README documents the full/read-only/appdata scopes table and the requirement that refresh tokens be generated with matching scopes.
+
+### Fixed
+- **Missing `driver` Key on Merged Disk Config**: The default disk config now declares `'driver' => 'google'`, fixing an `Undefined array key "driver"` boot error with recent Laravel 11 releases whose `FilesystemServiceProvider` reads the key for every disk.
+
+## [1.4.0] - 2026-09-30
 
 ### Added
 - **Shared Drives (Team Drives) Support**: Configurable `team_drive` setting (`GOOGLE_DRIVE_TEAM_DRIVE`) enabling `supportsAllDrives` and `includeItemsFromAllDrives` across all Google Drive API operations.

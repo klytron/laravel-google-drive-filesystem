@@ -18,6 +18,9 @@ A robust Google Drive filesystem adapter for Laravel that provides seamless inte
 - 🔧 **Configurable Debug Logging** - Control debug output in production environments
 - 📁 **Automatic Folder Creation** - Folders are created automatically when needed
 - 🔐 **Secure Authentication** - Support for both access tokens and refresh tokens with error detection
+- ♻️ **Resilient Token Refresh** - Automatic retry with backoff on transient auth failures
+- 🩺 **Credential Health Check** - `php artisan google-drive:check` validates credentials without side effects
+- 🔑 **Configurable OAuth Scopes** - Least-privilege scopes (`drive`, `drive.readonly`, `drive.appdata`)
 - 📊 **Metadata Support** - File sizes, modification times, and comprehensive MIME types
 - 🛡️ **Production Ready** - Proper error handling and logging configuration
 - 📚 **Comprehensive Documentation** - Detailed setup and usage guides
@@ -61,6 +64,9 @@ GOOGLE_DRIVE_FOLDER_ID=your-folder-id
 # Shared Drive / Team Drive Support (optional)
 GOOGLE_DRIVE_TEAM_DRIVE=false
 
+# OAuth Scopes (optional, comma-separated; defaults to full access)
+GOOGLE_DRIVE_SCOPES=https://www.googleapis.com/auth/drive
+
 # Debug Logging (optional)
 GOOGLE_DRIVE_DEBUG=false
 GOOGLE_DRIVE_LOG_PAYLOAD=false
@@ -75,6 +81,44 @@ GOOGLE_DRIVE_TEAM_DRIVE=true
 ```
 
 When enabled, all Drive operations automatically pass `supportsAllDrives=true` and `includeItemsFromAllDrives=true`.
+
+#### OAuth Scopes (Least Privilege)
+
+By default the package requests full read/write access. To follow least
+privilege, restrict the `scopes` config value (`GOOGLE_DRIVE_SCOPES`) to the
+minimum your app needs:
+
+| Use case | Scope | Notes |
+|---|---|---|
+| Full read/write (default) | `https://www.googleapis.com/auth/drive` | Required for uploads, updates, deletes |
+| Read-only | `https://www.googleapis.com/auth/drive.readonly` | Listing and downloading only; writes fail |
+| App data only | `https://www.googleapis.com/auth/drive.appdata` | Only the app's own hidden folder |
+
+```env
+GOOGLE_DRIVE_SCOPES=https://www.googleapis.com/auth/drive.readonly
+```
+
+Multiple scopes can be comma-separated
+(`GOOGLE_DRIVE_SCOPES="scope-a,scope-b"`) or set as an array in
+`config/google-drive.php`.
+
+> **Important:** the refresh token must have been generated with (at least)
+> these scopes. After narrowing scopes, re-run the OAuth flow from
+> [docs/GETTING-TOKENS.md](docs/GETTING-TOKENS.md) using the narrowed scope
+> in Step 1, otherwise API calls fail with permission errors.
+
+#### Health Check
+
+Validate credentials without touching any files (safe for scheduled jobs):
+
+```bash
+php artisan google-drive:check
+php artisan google-drive:check --disk=google-backup
+```
+
+Exit code `0` means credentials are valid; anything else prints an actionable
+error (e.g. which env var to rotate). Token refresh is retried once
+automatically on transient `401`/`5xx` failures before giving up.
 
 #### Debug Logging Options
 
